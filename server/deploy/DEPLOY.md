@@ -74,7 +74,10 @@ cp .env.production.example .env
 
 Edit `.env` — fill in the real database password and a freshly generated
 `JWT_SECRET` (`openssl rand -hex 32`). Leave `PORT=4001` as-is unless you
-also change the nginx config in step 4 to match.
+also change the nginx config in step 4 to match. Also fill in
+`SMTP_HOST`/`SMTP_USER`/`SMTP_PASS` with real credentials — without them,
+forgot-password codes only ever get logged to `pm2 logs studymate-backend`,
+never actually emailed to users.
 
 Install, generate the Prisma client, migrate, build, and start under PM2:
 

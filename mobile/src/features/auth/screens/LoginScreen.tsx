@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Image,
   SafeAreaView,
   ScrollView,
   Text,
@@ -13,6 +14,8 @@ import { useGoogleAuth } from '@/features/auth/useGoogleAuth';
 import { getErrorMessage } from '@/api/getErrorMessage';
 import { authStyles } from '@/features/auth/authStyles';
 import type { AuthStackScreenProps } from '@/navigation/types';
+
+const appLogo = require('../../../../assets/site-logo-transaprent.png');
 
 export function LoginScreen({ navigation }: AuthStackScreenProps<'Login'>) {
   const { signIn, signInWithGoogle } = useAuth();
@@ -44,6 +47,9 @@ export function LoginScreen({ navigation }: AuthStackScreenProps<'Login'>) {
   return (
     <SafeAreaView style={authStyles.safeArea}>
       <ScrollView contentContainerStyle={authStyles.container} keyboardShouldPersistTaps="handled">
+        <View style={authStyles.logoWrapper}>
+          <Image source={appLogo} style={authStyles.logo} resizeMode="contain" />
+        </View>
         <Text style={authStyles.title}>Welcome back</Text>
         <Text style={authStyles.subtitle}>Log in to continue</Text>
 

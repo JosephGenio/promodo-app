@@ -8,6 +8,16 @@ const envSchema = z.object({
   JWT_SECRET: z.string().min(16, 'JWT_SECRET must be at least 16 characters'),
   JWT_EXPIRES_IN: z.string().default('30d'),
   CORS_ORIGIN: z.string().default('*'),
+
+  // SMTP is optional: when SMTP_HOST is unset (local dev), lib/mailer.ts
+  // logs the reset code to the console instead of sending a real email.
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.coerce.number().default(587),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASS: z.string().optional(),
+  SMTP_FROM: z.string().default('StudyMate <no-reply@studymate.app>'),
+
+  RESET_CODE_EXPIRY_MINUTES: z.coerce.number().default(15),
 });
 
 const parsed = envSchema.safeParse(process.env);

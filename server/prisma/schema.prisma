@@ -12,6 +12,14 @@ model User {
   email        String   @unique
   name         String?
   passwordHash String
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+
+  // Forgot-password flow. resetTokenHash stores a bcrypt hash of the
+  // 6-digit code (never the raw code), so a DB dump alone can't be used to
+  // reset an account. resetAttempts caps brute-forcing that code.
+  resetTokenHash   String?
+  resetTokenExpiry DateTime?
+  resetAttempts    Int       @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

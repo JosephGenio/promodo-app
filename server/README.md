@@ -1,6 +1,6 @@
 # StudyMate — Server
 
-Express + Prisma (PostgreSQL) API. Implements email/password register + login for now — see [plan.md](../plan.md) for the fuller design (forgot-password, Google OAuth, feature module stubs) that hasn't been built yet.
+Express + Prisma (PostgreSQL) API. Implements email/password register, login, and forgot/reset-password so far — see [plan.md](../plan.md) for the fuller design (Google OAuth, feature module stubs) that hasn't been built yet.
 
 ## Setup
 
@@ -38,14 +38,16 @@ src/
 ├── lib/
 │   ├── prisma.ts               # PrismaClient singleton (via @prisma/adapter-pg — see note below)
 │   ├── jwt.ts                    # sign/verify helpers
-│   └── errors.ts                   # AppError + helpers (conflict/unauthorized/badRequest/notFound)
+│   ├── mailer.ts                   # sendPasswordResetEmail — nodemailer, or console.log if SMTP unset
+│   └── errors.ts                     # AppError + helpers (conflict/unauthorized/badRequest/notFound)
 ├── middleware/
 │   ├── requireAuth.ts               # JWT guard, attaches req.userId
 │   ├── errorHandler.ts                # formats AppError / ZodError / unknown errors as JSON
 │   ├── notFound.ts                      # 404 catch-all
-│   └── authRateLimiter.ts                 # rate limit on /api/auth/*
+│   ├── authRateLimiter.ts                 # rate limit on all of /api/auth/*
+│   └── passwordResetRateLimiter.ts          # tighter limit specifically on forgot/reset-password
 ├── modules/
-│   ├── auth/                                # register, login (validation/service/controller/routes)
+│   ├── auth/                                # register, login, forgot/reset-password (validation/service/controller/routes)
 │   └── user/                                  # GET /me
 └── routes/index.ts                              # mounts module routers under /api
 ```
@@ -59,9 +61,19 @@ src/
 | GET | `/health` | liveness check |
 | POST | `/api/auth/register` | `{ email, password, name? }` → `201 { token, user }` |
 | POST | `/api/auth/login` | `{ email, password }` → `200 { token, user }` |
+| POST | `/api/auth/forgot-password` | `{ email }` → `200 { message }` (always the same generic message — see below) |
+| POST | `/api/auth/reset-password` | `{ email, code, newPassword }` → `200 { message }` |
 | GET | `/api/users/me` | requires `Authorization: Bearer <token>` → current user |
 
-Not yet implemented (see `plan.md`): forgot-password/reset-password, Google OAuth (`POST /api/auth/google`), and the pomodoro/todo/quiz stub routes.
+Not yet implemented (see `plan.md`): Google OAuth (`POST /api/auth/google`), and the pomodoro/todo/quiz stub routes.
+
+### Forgot/reset-password design
+
+- `POST /forgot-password` always returns the same generic message regardless of whether the email exists, and regardless of whether the code-send step ran — this prevents the endpoint being used to enumerate registered emails.
+- If the account exists, a 6-digit code (`crypto.randomInt`, not `Math.random`) is generated, **bcrypt-hashed** before being stored (`resetTokenHash`/`resetTokenExpiry`/`resetAttempts` on `User`), and emailed via `lib/mailer.ts`.
+- **Local dev**: leave `SMTP_HOST` blank in `.env` — `lib/mailer.ts` logs the code to the server's own console instead of sending an email, so you can copy it from there to test the flow with zero email setup.
+- **Production**: `SMTP_HOST`/`SMTP_USER`/`SMTP_PASS` must be set in `.env` (any standard SMTP provider), or reset codes will only ever reach `pm2 logs studymate-backend`, never the user's inbox.
+- `POST /reset-password` checks the code against the stored hash, a 15-minute expiry (`RESET_CODE_EXPIRY_MINUTES`), and caps wrong attempts at 5 (`resetAttempts`) before requiring a fresh code. Both `/forgot-password` and `/reset-password` also sit behind a tighter rate limit (`passwordResetRateLimiter`, 5 req/15min) than the rest of `/api/auth/*`, since a 6-digit code is brute-forceable.
 
 ## Notable deviation from `plan.md`: Prisma 7
 
@@ -71,7 +83,7 @@ Not yet implemented (see `plan.md`): forgot-password/reset-password, Google OAut
 - The generator is `"prisma-client"` (not `"prisma-client-js"`), and it generates a full TS client into `src/generated/prisma/` (gitignored, regenerated via `npm run prisma:generate` — also runs automatically after `prisma migrate dev`).
 - The **runtime client** (`new PrismaClient()`) requires an explicit driver adapter — it does not read `DATABASE_URL` on its own. `src/lib/prisma.ts` passes one explicitly via `@prisma/adapter-pg`, reading the URL from our own validated `env.DATABASE_URL` (`src/config/env.ts`), not straight from `process.env`.
 
-Also: the `User` model only has `passwordHash` (required) for now — no `googleId`/reset-token fields yet. Those get added via a new migration when Google Sign-In / forgot-password are implemented, rather than speculatively now.
+Also: the `User` model only has `passwordHash` (required) and the reset-token fields for now — no `googleId` yet. That gets added via a new migration when Google Sign-In is implemented, rather than speculatively now.
 
 ## Verifying locally
 
@@ -88,6 +100,17 @@ curl -s -X POST http://localhost:4000/api/auth/login \
 
 # copy the "token" from either response
 curl -s http://localhost:4000/api/users/me -H "Authorization: Bearer <token>"
+
+# Forgot/reset password — with SMTP_HOST unset, watch the `npm run dev`
+# terminal for a line like:
+#   [mailer] SMTP not configured — password reset code for test@example.com: 123456
+curl -s -X POST http://localhost:4000/api/auth/forgot-password \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com"}'
+
+curl -s -X POST http://localhost:4000/api/auth/reset-password \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com","code":"<code from the console log>","newPassword":"newpassword123"}'
 ```
 
 ## Connecting the mobile app

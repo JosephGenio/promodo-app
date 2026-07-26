@@ -21,6 +21,14 @@ export const authStyles = StyleSheet.create({
     color: theme.colors.textSecondary,
     marginBottom: theme.spacing.sm,
   },
+  logoWrapper: {
+    alignItems: 'center',
+    marginBottom: theme.spacing.lg,
+  },
+  logo: {
+    width: 140,
+    height: 140,
+  },
   input: {
     borderWidth: 1,
     borderColor: theme.colors.border,

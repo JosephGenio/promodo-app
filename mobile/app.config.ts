@@ -9,7 +9,7 @@ const config: ExpoConfig = {
   scheme: 'studymate',
   version: '1.0.0',
   orientation: 'portrait',
-  icon: './assets/icon.png',
+  icon: './assets/site-logo-transaprent.png',
   userInterfaceStyle: 'light',
   ios: {
     supportsTablet: true,
@@ -18,14 +18,14 @@ const config: ExpoConfig = {
     package: 'com.thesis.promodoapp',
     adaptiveIcon: {
       backgroundColor: '#6366F1',
-      foregroundImage: './assets/android-icon-foreground.png',
+      foregroundImage: './assets/site-logo-transaprent.png',
       backgroundImage: './assets/android-icon-background.png',
       monochromeImage: './assets/android-icon-monochrome.png',
     },
     predictiveBackGestureEnabled: false,
   },
   web: {
-    favicon: './assets/favicon.png',
+    favicon: './assets/site-logo-transaprent.png',
   },
   plugins: ['expo-secure-store', 'expo-web-browser', 'expo-font'],
   extra: {
