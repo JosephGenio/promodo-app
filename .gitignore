@@ -1,0 +1,14 @@
+node_modules/
+.env
+.env.local
+.env.*.local
+dist/
+build/
+.expo/
+.expo-shared/
+*.log
+.DS_Store
+android/
+ios/
+*.apk
+*.aab
