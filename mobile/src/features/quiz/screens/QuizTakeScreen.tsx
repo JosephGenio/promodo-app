@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '@/theme/theme';
@@ -7,17 +7,50 @@ import { ScreenHeader } from '@/components/ScreenHeader';
 import { SectionCard } from '@/components/SectionCard';
 import { GradientButton } from '@/components/GradientButton';
 import { useQuizzes } from '@/features/quiz/quizStore';
+import * as quizApi from '@/features/quiz/api';
+import type { QuizDetail } from '@/features/quiz/api';
 import type { MainTabScreenProps } from '@/navigation/types';
+
+type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 
 export function QuizTakeScreen({ navigation, route }: MainTabScreenProps<'QuizTake'>) {
   const { getQuiz } = useQuizzes();
-  const quiz = getQuiz(route.params.quizId);
+  const [quiz, setQuiz] = useState<QuizDetail | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<number[]>([]);
   const [selected, setSelected] = useState<number | null>(null);
   const [finished, setFinished] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
 
-  if (!quiz) {
+  useEffect(() => {
+    let active = true;
+    getQuiz(route.params.quizId)
+      .then((result) => {
+        if (active) setQuiz(result);
+      })
+      .catch(() => {
+        if (active) setLoadError(true);
+      })
+      .finally(() => {
+        if (active) setIsLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [getQuiz, route.params.quizId]);
+
+  if (isLoading) {
+    return (
+      <ScreenContainer>
+        <ScreenHeader title="Loading Quiz" />
+        <Text style={styles.body}>Loading quiz…</Text>
+      </ScreenContainer>
+    );
+  }
+
+  if (!quiz || loadError) {
     return (
       <ScreenContainer>
         <ScreenHeader title="Quiz Not Found" />
@@ -30,6 +63,12 @@ export function QuizTakeScreen({ navigation, route }: MainTabScreenProps<'QuizTa
   if (finished) {
     const score = answers.filter((answer, index) => answer === quiz.questions[index].correctIndex).length;
     const percent = Math.round((score / quiz.questions.length) * 100);
+    const saveStatusLabel: Record<SaveStatus, string | null> = {
+      idle: null,
+      saving: 'Saving result…',
+      saved: 'Result saved',
+      error: "Couldn't save result",
+    };
     return (
       <ScreenContainer>
         <ScreenHeader title={quiz.title} subtitle="Quiz complete" />
@@ -39,6 +78,9 @@ export function QuizTakeScreen({ navigation, route }: MainTabScreenProps<'QuizTa
             {score}/{quiz.questions.length}
           </Text>
           <Text style={styles.resultPercent}>{percent}% correct</Text>
+          {saveStatusLabel[saveStatus] ? (
+            <Text style={styles.saveStatus}>{saveStatusLabel[saveStatus]}</Text>
+          ) : null}
         </SectionCard>
         <GradientButton label="Back to Quizzes" onPress={() => navigation.navigate('QuizMaker')} />
       </ScreenContainer>
@@ -49,12 +91,17 @@ export function QuizTakeScreen({ navigation, route }: MainTabScreenProps<'QuizTa
   const isLast = currentIndex === quiz.questions.length - 1;
 
   function handleNext() {
-    if (selected === null) return;
+    if (selected === null || !quiz) return;
     const nextAnswers = [...answers, selected];
     setAnswers(nextAnswers);
     setSelected(null);
     if (isLast) {
       setFinished(true);
+      setSaveStatus('saving');
+      quizApi
+        .submitAttempt(quiz.id, nextAnswers)
+        .then(() => setSaveStatus('saved'))
+        .catch(() => setSaveStatus('error'));
     } else {
       setCurrentIndex((prev) => prev + 1);
     }
@@ -137,5 +184,9 @@ const styles = StyleSheet.create({
   resultPercent: {
     ...theme.typography.body,
     color: theme.colors.textSecondary,
+  },
+  saveStatus: {
+    ...theme.typography.caption,
+    color: theme.colors.textMuted,
   },
 });

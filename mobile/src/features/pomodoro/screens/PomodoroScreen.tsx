@@ -6,6 +6,7 @@ import { ScreenContainer } from '@/components/ScreenContainer';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { SectionCard } from '@/components/SectionCard';
 import { Pill } from '@/components/Pill';
+import * as pomodoroApi from '@/features/pomodoro/api';
 
 type Mode = 'study' | 'short' | 'long';
 
@@ -38,12 +39,20 @@ export function PomodoroScreen() {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    pomodoroApi
+      .fetchSessions(startOfToday.toISOString())
+      .then((sessions) => setSessionsCompleted(sessions.length))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
     if (!isRunning) return;
     intervalRef.current = setInterval(() => {
       setSecondsLeft((prev) => {
         if (prev <= 1) {
           setIsRunning(false);
-          if (mode === 'study') setSessionsCompleted((count) => count + 1);
           return 0;
         }
         return prev - 1;
@@ -52,7 +61,16 @@ export function PomodoroScreen() {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [isRunning, mode]);
+  }, [isRunning]);
+
+  useEffect(() => {
+    if (secondsLeft !== 0 || isRunning || mode !== 'study') return;
+    setSessionsCompleted((count) => count + 1);
+    void pomodoroApi
+      .createSession({ subject: subject.trim() || undefined, durationSeconds: DURATIONS.study })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [secondsLeft]);
 
   function selectMode(next: Mode) {
     setMode(next);

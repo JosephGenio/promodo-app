@@ -1,101 +1,69 @@
-import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import * as quizApi from '@/features/quiz/api';
+import type { QuizDetail, QuizListItem, QuizQuestion } from '@/features/quiz/api';
 
-export type QuizQuestion = {
-  id: string;
-  text: string;
-  options: string[];
-  correctIndex: number;
-};
+export type { QuizDetail, QuizListItem, QuizQuestion };
 
-export type Quiz = {
-  id: string;
+type NewQuiz = {
   subject: string;
   title: string;
   description: string;
-  questions: QuizQuestion[];
+  questions: Omit<QuizQuestion, 'id'>[];
 };
 
 type QuizContextValue = {
-  quizzes: Quiz[];
-  addQuiz: (quiz: Omit<Quiz, 'id'>) => void;
-  getQuiz: (id: string) => Quiz | undefined;
+  quizzes: QuizListItem[];
+  isLoading: boolean;
+  error: boolean;
+  refresh: () => void;
+  addQuiz: (quiz: NewQuiz) => Promise<QuizDetail>;
+  getQuiz: (id: string) => Promise<QuizDetail>;
 };
 
 const QuizContext = createContext<QuizContextValue | undefined>(undefined);
 
-const SEED_QUIZZES: Quiz[] = [
-  {
-    id: '1',
-    subject: 'Biology',
-    title: 'Cell Biology Review',
-    description: 'Test your knowledge of cell structure',
-    questions: [
-      {
-        id: '1-1',
-        text: 'Which organelle contains the cell’s DNA?',
-        options: ['Mitochondria', 'Nucleus', 'Ribosome', 'Golgi apparatus'],
-        correctIndex: 1,
-      },
-      {
-        id: '1-2',
-        text: 'Which organelle is known as the powerhouse of the cell?',
-        options: ['Nucleus', 'Lysosome', 'Mitochondria', 'Vacuole'],
-        correctIndex: 2,
-      },
-    ],
-  },
-  {
-    id: '2',
-    subject: 'Mathematics',
-    title: 'Quadratic Equations Quiz',
-    description: 'Practice solving quadratic equations',
-    questions: [
-      {
-        id: '2-1',
-        text: 'What is the quadratic formula used for?',
-        options: [
-          'Solving linear equations',
-          'Solving equations of the form ax² + bx + c = 0',
-          'Finding derivatives',
-          'Graphing lines',
-        ],
-        correctIndex: 1,
-      },
-      {
-        id: '2-2',
-        text: 'In ax² + bx + c = 0, what does the discriminant b² - 4ac tell you?',
-        options: [
-          'The number of real solutions',
-          'The value of x',
-          'The slope of the line',
-          'Nothing useful',
-        ],
-        correctIndex: 0,
-      },
-      {
-        id: '2-3',
-        text: 'How many solutions does x² - 4 = 0 have?',
-        options: ['0', '1', '2', '3'],
-        correctIndex: 2,
-      },
-    ],
-  },
-];
-
 export function QuizProvider({ children }: { children: ReactNode }) {
-  const [quizzes, setQuizzes] = useState<Quiz[]>(SEED_QUIZZES);
+  const [quizzes, setQuizzes] = useState<QuizListItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  const refresh = useCallback(() => {
+    setIsLoading(true);
+    setError(false);
+    quizApi
+      .fetchQuizzes()
+      .then(setQuizzes)
+      .catch(() => setError(true))
+      .finally(() => setIsLoading(false));
+  }, []);
+
+  useEffect(refresh, [refresh]);
 
   const value = useMemo<QuizContextValue>(
     () => ({
       quizzes,
-      addQuiz(quiz) {
-        setQuizzes((prev) => [{ ...quiz, id: String(Date.now()) }, ...prev]);
+      isLoading,
+      error,
+      refresh,
+      async addQuiz(quiz) {
+        const created = await quizApi.createQuiz(quiz);
+        setQuizzes((prev) => [
+          {
+            id: created.id,
+            subject: created.subject,
+            title: created.title,
+            description: created.description,
+            questionCount: created.questions.length,
+          },
+          ...prev,
+        ]);
+        return created;
       },
       getQuiz(id) {
-        return quizzes.find((quiz) => quiz.id === id);
+        return quizApi.fetchQuiz(id);
       },
     }),
-    [quizzes],
+    [quizzes, isLoading, error, refresh],
   );
 
   return <QuizContext.Provider value={value}>{children}</QuizContext.Provider>;

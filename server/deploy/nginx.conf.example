@@ -1,3 +1,15 @@
+# STALE / UNUSED — kept for reference only.
+#
+# This assumed nginx would front the API, matching the bnhs sibling
+# project's own docs. In reality this VPS reverse-proxies everything
+# through a pre-existing Caddy instance running in Docker (shared with an
+# n8n install) — nginx was never actually started in production. See
+# deploy/DEPLOY.md step 4 and deploy/Caddyfile.example for what's actually
+# deployed.
+#
+# Original intent preserved below in case a future deployment target
+# really does use nginx instead of Caddy.
+
 # Reverse proxy for the StudyMate backend API.
 # Copy to /etc/nginx/sites-available/studymate-backend, symlink into
 # sites-enabled, then run `certbot --nginx -d studymate-api.synflo.space`

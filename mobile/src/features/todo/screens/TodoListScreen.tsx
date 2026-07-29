@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '@/theme/theme';
@@ -6,37 +6,32 @@ import { ScreenContainer } from '@/components/ScreenContainer';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { SectionCard } from '@/components/SectionCard';
 import { GradientButton } from '@/components/GradientButton';
-
-type Task = {
-  id: string;
-  title: string;
-  description: string;
-  done: boolean;
-};
+import * as todoApi from '@/features/todo/api';
+import type { Todo } from '@/features/todo/api';
 
 type Filter = 'Active' | 'Done' | 'All';
 
-const INITIAL_TASKS: Task[] = [
-  {
-    id: '1',
-    title: 'Finish Algebra homework',
-    description: 'Chapter 4, problems 1-20',
-    done: false,
-  },
-  {
-    id: '2',
-    title: 'Review Biology notes',
-    description: 'Cell structure and organelles',
-    done: false,
-  },
-];
-
 export function TodoListScreen() {
-  const [tasks, setTasks] = useState<Task[]>(INITIAL_TASKS);
+  const [tasks, setTasks] = useState<Todo[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [filter, setFilter] = useState<Filter>('Active');
   const [isAdding, setIsAdding] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newDescription, setNewDescription] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  function loadTasks() {
+    setIsLoading(true);
+    setLoadError(false);
+    todoApi
+      .fetchTodos()
+      .then(setTasks)
+      .catch(() => setLoadError(true))
+      .finally(() => setIsLoading(false));
+  }
+
+  useEffect(loadTasks, []);
 
   const visibleTasks = tasks.filter((task) => {
     if (filter === 'Active') return !task.done;
@@ -45,22 +40,36 @@ export function TodoListScreen() {
   });
 
   function toggleTask(id: string) {
+    const previous = tasks;
+    const target = tasks.find((task) => task.id === id);
+    if (!target) return;
     setTasks((prev) => prev.map((task) => (task.id === id ? { ...task, done: !task.done } : task)));
+    todoApi.updateTodo(id, { done: !target.done }).catch(() => setTasks(previous));
   }
 
   function deleteTask(id: string) {
+    const previous = tasks;
     setTasks((prev) => prev.filter((task) => task.id !== id));
+    todoApi.deleteTodo(id).catch(() => setTasks(previous));
   }
 
-  function addTask() {
-    if (!newTitle.trim()) return;
-    setTasks((prev) => [
-      { id: String(Date.now()), title: newTitle.trim(), description: newDescription.trim(), done: false },
-      ...prev,
-    ]);
-    setNewTitle('');
-    setNewDescription('');
-    setIsAdding(false);
+  async function addTask() {
+    if (!newTitle.trim() || isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      const created = await todoApi.createTodo({
+        title: newTitle.trim(),
+        description: newDescription.trim(),
+      });
+      setTasks((prev) => [created, ...prev]);
+      setNewTitle('');
+      setNewDescription('');
+      setIsAdding(false);
+    } catch {
+      // leave the form open with the entered values so the user can retry
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -105,11 +114,21 @@ export function TodoListScreen() {
             onChangeText={setNewDescription}
             multiline
           />
-          <GradientButton label="Add Task" onPress={addTask} />
+          <GradientButton
+            label={isSubmitting ? 'Adding…' : 'Add Task'}
+            onPress={addTask}
+            disabled={isSubmitting}
+          />
         </SectionCard>
       ) : null}
 
-      {visibleTasks.length === 0 ? (
+      {isLoading ? (
+        <Text style={styles.empty}>Loading tasks…</Text>
+      ) : loadError ? (
+        <TouchableOpacity onPress={loadTasks}>
+          <Text style={styles.empty}>Couldn't load tasks. Tap to retry.</Text>
+        </TouchableOpacity>
+      ) : visibleTasks.length === 0 ? (
         <Text style={styles.empty}>No {filter.toLowerCase()} tasks yet.</Text>
       ) : (
         visibleTasks.map((task) => (

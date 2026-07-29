@@ -1,8 +1,9 @@
 import type { NextFunction, Request, Response } from 'express';
+import type { ParamsDictionary } from 'express-serve-static-core';
 import { verifyToken } from '../lib/jwt';
 import { unauthorized } from '../lib/errors';
 
-export interface AuthenticatedRequest extends Request {
+export interface AuthenticatedRequest<P = ParamsDictionary> extends Request<P> {
   userId?: string;
 }
 

@@ -1,0 +1,17 @@
+# Reference only — this is the block that was added to the VPS's actual
+# Caddyfile (a pre-existing, shared instance running in Docker, not owned
+# by this project). See deploy/DEPLOY.md step 4 for how to find and edit
+# the real file on the box.
+#
+# 172.18.0.1 is the Docker bridge gateway IP that lets the Caddy container
+# reach this app's PM2 process on the host — not localhost/127.0.0.1,
+# which inside the container refers to the container itself.
+#
+# No certbot/TLS config needed here: Caddy auto-provisions and renews
+# Let's Encrypt certs for any domain in its Caddyfile, as long as DNS
+# points at this VPS and is NOT proxied through Cloudflare (DNS only /
+# grey cloud — see DEPLOY.md step 6).
+
+studymate-api.synflo.space {
+  reverse_proxy 172.18.0.1:4001
+}
