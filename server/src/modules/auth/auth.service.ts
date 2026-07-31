@@ -7,7 +7,14 @@ import { sendPasswordResetEmail } from '../../lib/mailer';
 import { env } from '../../config/env';
 import { badRequest, conflict, unauthorized } from '../../lib/errors';
 import { toPublicUser, type PublicUser } from '../user/user.service';
-import type { ForgotPasswordInput, LoginInput, RegisterInput, ResetPasswordInput } from './auth.validation';
+import { verifyGoogleIdToken } from './google';
+import type {
+  ForgotPasswordInput,
+  GoogleAuthInput,
+  LoginInput,
+  RegisterInput,
+  ResetPasswordInput,
+} from './auth.validation';
 
 const SALT_ROUNDS = 10;
 const DUPLICATE_KEY_ERROR_CODE = 'P2002';
@@ -113,7 +120,7 @@ export async function confirmPasswordReset(input: ResetPasswordInput): Promise<{
 
 export async function loginUser(input: LoginInput): Promise<AuthResult> {
   const user = await prisma.user.findUnique({ where: { email: input.email } });
-  if (!user) {
+  if (!user || !user.passwordHash) {
     throw unauthorized('Invalid email or password');
   }
 
@@ -123,4 +130,30 @@ export async function loginUser(input: LoginInput): Promise<AuthResult> {
   }
 
   return { token: signToken({ sub: user.id }), user: toPublicUser(user) };
+}
+
+export async function googleAuth(input: GoogleAuthInput): Promise<AuthResult> {
+  const profile = await verifyGoogleIdToken(input.idToken);
+
+  const existingByGoogleId = await prisma.user.findUnique({ where: { googleId: profile.googleId } });
+  if (existingByGoogleId) {
+    return { token: signToken({ sub: existingByGoogleId.id }), user: toPublicUser(existingByGoogleId) };
+  }
+
+  // Google verifies email ownership, so it's safe to link this Google
+  // identity onto an existing password account with the same email rather
+  // than erroring or creating a duplicate account for the same person.
+  const existingByEmail = await prisma.user.findUnique({ where: { email: profile.email } });
+  if (existingByEmail) {
+    const linked = await prisma.user.update({
+      where: { id: existingByEmail.id },
+      data: { googleId: profile.googleId },
+    });
+    return { token: signToken({ sub: linked.id }), user: toPublicUser(linked) };
+  }
+
+  const created = await prisma.user.create({
+    data: { email: profile.email, name: profile.name, googleId: profile.googleId },
+  });
+  return { token: signToken({ sub: created.id }), user: toPublicUser(created) };
 }

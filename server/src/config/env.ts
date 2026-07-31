@@ -18,6 +18,14 @@ const envSchema = z.object({
   SMTP_FROM: z.string().default('StudyMate <no-reply@studymate.app>'),
 
   RESET_CODE_EXPIRY_MINUTES: z.coerce.number().default(15),
+
+  // Accepted audiences for Google Sign-In ID token verification — must match
+  // the client IDs the mobile app requests tokens for (mobile/.env's
+  // EXPO_PUBLIC_GOOGLE_*_CLIENT_ID). At least one should be set for Google
+  // Sign-In to work; none of these being set just means that endpoint 401s.
+  GOOGLE_ANDROID_CLIENT_ID: z.string().optional(),
+  GOOGLE_IOS_CLIENT_ID: z.string().optional(),
+  GOOGLE_WEB_CLIENT_ID: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);

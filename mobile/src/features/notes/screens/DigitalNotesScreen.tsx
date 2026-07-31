@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '@/theme/theme';
@@ -7,43 +7,32 @@ import { ScreenHeader } from '@/components/ScreenHeader';
 import { SectionCard } from '@/components/SectionCard';
 import { TagPill } from '@/components/TagPill';
 import { GradientButton } from '@/components/GradientButton';
-
-type Note = {
-  id: string;
-  category: string;
-  title: string;
-  content: string;
-};
-
-const INITIAL_NOTES: Note[] = [
-  {
-    id: '1',
-    category: 'Mathematics',
-    title: 'Quadratic Formula',
-    content: 'The quadratic formula: x = (-b ± √(b² - 4ac)) / 2a. Used to solve equations in the form ax² + bx + c = 0.',
-  },
-  {
-    id: '2',
-    category: 'Biology',
-    title: 'Cell Structure Basics',
-    content: 'Key cell organelles: Nucleus contains DNA, controls cell activity. Mitochondria: energy production.',
-  },
-  {
-    id: '3',
-    category: 'History',
-    title: 'WW2 Timeline',
-    content: '1939: Germany invades Poland. 1940: Battle of Britain. 1941: Pearl Harbor, US enters war.',
-  },
-];
+import * as notesApi from '@/features/notes/api';
+import type { Note } from '@/features/notes/api';
 
 export function DigitalNotesScreen() {
-  const [notes, setNotes] = useState<Note[]>(INITIAL_NOTES);
+  const [notes, setNotes] = useState<Note[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
   const [isAdding, setIsAdding] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newCategory, setNewCategory] = useState('');
   const [newContent, setNewContent] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  function loadNotes() {
+    setIsLoading(true);
+    setLoadError(false);
+    notesApi
+      .fetchNotes()
+      .then(setNotes)
+      .catch(() => setLoadError(true))
+      .finally(() => setIsLoading(false));
+  }
+
+  useEffect(loadNotes, []);
 
   const categories = useMemo(() => {
     const unique = Array.from(new Set(notes.map((note) => note.category)));
@@ -59,21 +48,31 @@ export function DigitalNotesScreen() {
     return matchesCategory && matchesSearch;
   });
 
-  function addNote() {
-    if (!newTitle.trim() || !newContent.trim()) return;
-    setNotes((prev) => [
-      {
-        id: String(Date.now()),
+  async function addNote() {
+    if (!newTitle.trim() || !newContent.trim() || isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      const created = await notesApi.createNote({
         title: newTitle.trim(),
         category: newCategory.trim() || 'General',
         content: newContent.trim(),
-      },
-      ...prev,
-    ]);
-    setNewTitle('');
-    setNewCategory('');
-    setNewContent('');
-    setIsAdding(false);
+      });
+      setNotes((prev) => [created, ...prev]);
+      setNewTitle('');
+      setNewCategory('');
+      setNewContent('');
+      setIsAdding(false);
+    } catch {
+      // leave the form open with the entered values so the user can retry
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  function deleteNote(id: string) {
+    const previous = notes;
+    setNotes((prev) => prev.filter((note) => note.id !== id));
+    notesApi.deleteNote(id).catch(() => setNotes(previous));
   }
 
   return (
@@ -137,21 +136,38 @@ export function DigitalNotesScreen() {
             onChangeText={setNewContent}
             multiline
           />
-          <GradientButton label="Save Note" onPress={addNote} />
+          <GradientButton
+            label={isSubmitting ? 'Saving…' : 'Save Note'}
+            onPress={addNote}
+            disabled={isSubmitting}
+          />
         </SectionCard>
       ) : null}
 
-      <View style={styles.grid}>
-        {visibleNotes.map((note) => (
-          <SectionCard key={note.id} style={styles.noteCard}>
-            <TagPill label={note.category} accent="amber" />
-            <Text style={styles.noteTitle}>{note.title}</Text>
-            <Text style={styles.noteContent} numberOfLines={4}>
-              {note.content}
-            </Text>
-          </SectionCard>
-        ))}
-      </View>
+      {isLoading ? (
+        <Text style={styles.noteContent}>Loading notes…</Text>
+      ) : loadError ? (
+        <TouchableOpacity onPress={loadNotes}>
+          <Text style={styles.noteContent}>Couldn't load notes. Tap to retry.</Text>
+        </TouchableOpacity>
+      ) : (
+        <View style={styles.grid}>
+          {visibleNotes.map((note) => (
+            <SectionCard key={note.id} style={styles.noteCard}>
+              <View style={styles.headerRow}>
+                <TagPill label={note.category} accent="amber" />
+                <TouchableOpacity onPress={() => deleteNote(note.id)} hitSlop={8}>
+                  <Ionicons name="trash-outline" size={18} color={theme.colors.textMuted} />
+                </TouchableOpacity>
+              </View>
+              <Text style={styles.noteTitle}>{note.title}</Text>
+              <Text style={styles.noteContent} numberOfLines={4}>
+                {note.content}
+              </Text>
+            </SectionCard>
+          ))}
+        </View>
+      )}
     </ScreenContainer>
   );
 }
@@ -229,6 +245,11 @@ const styles = StyleSheet.create({
     flexBasis: '47%',
     flexGrow: 1,
     gap: theme.spacing.xs,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   noteTitle: {
     ...theme.typography.h3,

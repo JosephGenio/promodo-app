@@ -188,6 +188,11 @@ const styles = StyleSheet.create({
   entryCard: {
     gap: theme.spacing.xs,
   },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   dateBadge: {
     flexDirection: 'row',
     alignItems: 'center',

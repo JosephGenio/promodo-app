@@ -12,7 +12,8 @@ model User {
   id           String   @id @default(uuid())
   email        String   @unique
   name         String?
-  passwordHash String
+  passwordHash String?
+  googleId     String?  @unique
 
   // Forgot-password flow. resetTokenHash stores a bcrypt hash of the
   // 6-digit code (never the raw code), so a DB dump alone can't be used to

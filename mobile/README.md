@@ -70,7 +70,7 @@ All colors, spacing, radii, and typography live in `src/theme/theme.ts`. To chan
 2. Configure the OAuth consent screen (External, Testing mode is enough for a thesis demo).
 3. Create an OAuth Client ID of type **Android** — needs the package name (`com.thesis.promodoapp`, see `app.config.ts`) and a SHA-1 fingerprint (debug keystore for Expo Go/dev testing, or `eas credentials` for the EAS-managed release keystore).
 4. Create an OAuth Client ID of type **Web application** — used both as the backend's token-verification audience and by `expo-auth-session`'s redirect flow.
-5. Put both IDs into `.env` (`EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID` / `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`) and into the server's `.env` (`GOOGLE_ANDROID_CLIENT_ID` / `GOOGLE_CLIENT_ID`).
+5. Put both IDs into `.env` (`EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID` / `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`) and into the server's `.env` (`GOOGLE_ANDROID_CLIENT_ID` / `GOOGLE_WEB_CLIENT_ID`).
 6. Testing on iOS via Expo Go (dev convenience only — the app ships as an Android `.apk`, there's no iOS build target): also create an **iOS** OAuth Client ID and set `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` in `.env`, or the Google button will just fail to authenticate on iOS (it won't crash — all three client ID fields default to an empty string, and `expo-auth-session` only throws if a field is left `undefined`).
 
 **Caveat**: full native Google Sign-In may not work reliably in plain Expo Go — it's more reliably tested via an EAS `development` build (`eas build --profile development --platform android`). Email/password auth works fully in Expo Go regardless.
