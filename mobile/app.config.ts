@@ -27,7 +27,7 @@ const config: ExpoConfig = {
   web: {
     favicon: './assets/site-logo-transaprent.png',
   },
-  plugins: ['expo-secure-store', 'expo-web-browser', 'expo-font'],
+  plugins: ['expo-secure-store', 'expo-web-browser', 'expo-font', 'expo-status-bar'],
   extra: {
     eas: {
       projectId: '88fe0eaf-ffe7-4dff-b0b6-7cd47d40fdeb',

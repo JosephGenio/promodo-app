@@ -13,6 +13,7 @@ import { useAuth } from '@/features/auth/AuthContext';
 import { useGoogleAuth } from '@/features/auth/useGoogleAuth';
 import { getErrorMessage } from '@/api/getErrorMessage';
 import { authStyles } from '@/features/auth/authStyles';
+import { theme } from '@/theme/theme';
 import type { AuthStackScreenProps } from '@/navigation/types';
 
 const appLogo = require('../../../../assets/site-logo-transaprent.png');
@@ -56,6 +57,7 @@ export function LoginScreen({ navigation }: AuthStackScreenProps<'Login'>) {
         <TextInput
           style={authStyles.input}
           placeholder="Email"
+          placeholderTextColor={theme.colors.textMuted}
           autoCapitalize="none"
           keyboardType="email-address"
           value={email}
@@ -64,6 +66,7 @@ export function LoginScreen({ navigation }: AuthStackScreenProps<'Login'>) {
         <TextInput
           style={authStyles.input}
           placeholder="Password"
+          placeholderTextColor={theme.colors.textMuted}
           secureTextEntry
           value={password}
           onChangeText={setPassword}

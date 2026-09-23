@@ -10,6 +10,7 @@ import {
 import { forgotPassword } from '@/features/auth/api';
 import { getErrorMessage } from '@/api/getErrorMessage';
 import { authStyles } from '@/features/auth/authStyles';
+import { theme } from '@/theme/theme';
 import type { AuthStackScreenProps } from '@/navigation/types';
 
 export function ForgotPasswordScreen({ navigation }: AuthStackScreenProps<'ForgotPassword'>) {
@@ -41,6 +42,7 @@ export function ForgotPasswordScreen({ navigation }: AuthStackScreenProps<'Forgo
         <TextInput
           style={authStyles.input}
           placeholder="Email"
+          placeholderTextColor={theme.colors.textMuted}
           autoCapitalize="none"
           keyboardType="email-address"
           value={email}

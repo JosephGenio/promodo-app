@@ -10,6 +10,7 @@ import {
 import { useAuth } from '@/features/auth/AuthContext';
 import { getErrorMessage } from '@/api/getErrorMessage';
 import { authStyles } from '@/features/auth/authStyles';
+import { theme } from '@/theme/theme';
 import type { AuthStackScreenProps } from '@/navigation/types';
 
 export function CreateAccountScreen({ navigation }: AuthStackScreenProps<'CreateAccount'>) {
@@ -46,12 +47,14 @@ export function CreateAccountScreen({ navigation }: AuthStackScreenProps<'Create
         <TextInput
           style={authStyles.input}
           placeholder="Name"
+          placeholderTextColor={theme.colors.textMuted}
           value={name}
           onChangeText={setName}
         />
         <TextInput
           style={authStyles.input}
           placeholder="Email"
+          placeholderTextColor={theme.colors.textMuted}
           autoCapitalize="none"
           keyboardType="email-address"
           value={email}
@@ -60,6 +63,7 @@ export function CreateAccountScreen({ navigation }: AuthStackScreenProps<'Create
         <TextInput
           style={authStyles.input}
           placeholder="Password"
+          placeholderTextColor={theme.colors.textMuted}
           secureTextEntry
           value={password}
           onChangeText={setPassword}
@@ -67,6 +71,7 @@ export function CreateAccountScreen({ navigation }: AuthStackScreenProps<'Create
         <TextInput
           style={authStyles.input}
           placeholder="Confirm password"
+          placeholderTextColor={theme.colors.textMuted}
           secureTextEntry
           value={confirmPassword}
           onChangeText={setConfirmPassword}

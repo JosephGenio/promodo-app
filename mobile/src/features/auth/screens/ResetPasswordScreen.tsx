@@ -11,6 +11,7 @@ import {
 import { resetPassword } from '@/features/auth/api';
 import { getErrorMessage } from '@/api/getErrorMessage';
 import { authStyles } from '@/features/auth/authStyles';
+import { theme } from '@/theme/theme';
 import type { AuthStackScreenProps } from '@/navigation/types';
 
 export function ResetPasswordScreen({ navigation, route }: AuthStackScreenProps<'ResetPassword'>) {
@@ -50,6 +51,7 @@ export function ResetPasswordScreen({ navigation, route }: AuthStackScreenProps<
         <TextInput
           style={authStyles.input}
           placeholder="6-digit code"
+          placeholderTextColor={theme.colors.textMuted}
           keyboardType="number-pad"
           maxLength={6}
           value={code}
@@ -58,6 +60,7 @@ export function ResetPasswordScreen({ navigation, route }: AuthStackScreenProps<
         <TextInput
           style={authStyles.input}
           placeholder="New password"
+          placeholderTextColor={theme.colors.textMuted}
           secureTextEntry
           value={newPassword}
           onChangeText={setNewPassword}
@@ -65,6 +68,7 @@ export function ResetPasswordScreen({ navigation, route }: AuthStackScreenProps<
         <TextInput
           style={authStyles.input}
           placeholder="Confirm new password"
+          placeholderTextColor={theme.colors.textMuted}
           secureTextEntry
           value={confirmPassword}
           onChangeText={setConfirmPassword}

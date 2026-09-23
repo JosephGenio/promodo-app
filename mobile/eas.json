@@ -20,7 +20,7 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_BASE_URL": "https://api.promodo.example.com"
+        "EXPO_PUBLIC_API_BASE_URL": "https://studymate-api.synflo.space"
       }
     },
     "production": {
@@ -28,7 +28,7 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_BASE_URL": "https://api.promodo.example.com"
+        "EXPO_PUBLIC_API_BASE_URL": "https://studymate-api.synflo.space"
       }
     }
   },
